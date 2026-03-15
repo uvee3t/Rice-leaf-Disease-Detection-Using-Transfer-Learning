@@ -27,7 +27,7 @@ def load_model():
 
     if not os.path.exists(MODEL_PATH):
 
-        file_id = "YOUR_GOOGLE_DRIVE_MODEL_ID"
+        file_id = "1mgcTQlARjLqiJj8ZNnqHQGazIYUcgflh"
         url = f"https://drive.google.com/uc?id={file_id}"
 
         gdown.download(url, MODEL_PATH, quiet=False)
