@@ -37,13 +37,10 @@ Includes **Explainable AI using Grad-CAM**.
 # -----------------------------------------------------
 
 MODEL_PATH = "rice_disease_model.h5"
-
 FILE_ID = "1mgcTQlARjLqiJj8ZNnqHQGazIYUcgflh"
-
 MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 
 IMG_SIZE = 224
-
 TRAINED_MODEL_ACCURACY = 0.96
 
 
@@ -75,7 +72,6 @@ def download_model():
 def load_model():
 
     path = download_model()
-
     model = tf.keras.models.load_model(path)
 
     return model
@@ -143,9 +139,7 @@ disease_info = {
 def preprocess_image(image):
 
     image = image.resize((IMG_SIZE, IMG_SIZE))
-
     img = np.array(image) / 255.0
-
     img = np.expand_dims(img, axis=0)
 
     return img
@@ -163,9 +157,7 @@ def predict(img):
         preds = preds[0]
 
     index = np.argmax(preds)
-
     label = classes[index]
-
     confidence = float(np.max(preds))
 
     return label, confidence, preds
@@ -206,17 +198,14 @@ def make_gradcam_heatmap(img_array, model):
             predictions = predictions[0]
 
         pred_index = tf.argmax(predictions[0])
-
         class_channel = predictions[:, pred_index]
 
     grads = tape.gradient(class_channel, conv_outputs)
 
     pooled_grads = tf.reduce_mean(grads, axis=(0,1,2))
-
     conv_outputs = conv_outputs[0]
 
     heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
-
     heatmap = tf.squeeze(heatmap)
 
     heatmap = tf.maximum(heatmap,0) / tf.reduce_max(heatmap)
@@ -314,10 +303,38 @@ if uploaded_file:
             st.subheader("GradCAM Overlay")
             st.image(overlay,channels="BGR")
 
+
+        # -----------------------------------------------------
+        # DETECTED DISEASE REGION (YOUR CODE INTEGRATED)
+        # -----------------------------------------------------
+
+        img = original
+
+        heatmap_resized = cv2.resize(heatmap, (224,224))
+
+        heatmap_resized = np.uint8(heatmap_resized)
+
+        if len(heatmap_resized.shape) == 3:
+            heatmap_resized = cv2.cvtColor(heatmap_resized, cv2.COLOR_BGR2GRAY)
+
+        _, mask = cv2.threshold(heatmap_resized, 150, 255, cv2.THRESH_BINARY)
+
+        mask = mask.astype(np.uint8)
+
+        mask = cv2.resize(mask, (img.shape[1], img.shape[0]))
+
+        disease_region = cv2.bitwise_and(img, img, mask=mask)
+
+        st.subheader("Detected Disease Region")
+
+        st.image(disease_region, channels="BGR")
+
+
     except Exception as e:
 
         st.error("GradCAM visualization failed")
         st.write(e)
+
 
 # -----------------------------------------------------
 # FOOTER
