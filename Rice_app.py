@@ -46,6 +46,7 @@ IMG_SIZE = 224
 
 TRAINED_MODEL_ACCURACY = 0.96
 
+
 # -----------------------------------------------------
 # DOWNLOAD MODEL
 # -----------------------------------------------------
@@ -94,7 +95,7 @@ classes = [
 ]
 
 # -----------------------------------------------------
-# DISEASE INFORMATION
+# DISEASE INFO
 # -----------------------------------------------------
 
 disease_info = {
@@ -158,6 +159,9 @@ def predict(img):
 
     preds = model.predict(img)
 
+    if isinstance(preds, list):
+        preds = preds[0]
+
     index = np.argmax(preds)
 
     label = classes[index]
@@ -168,7 +172,7 @@ def predict(img):
 
 
 # -----------------------------------------------------
-# GET LAST CONV LAYER
+# FIND LAST CONV LAYER
 # -----------------------------------------------------
 
 def get_last_conv_layer(model):
@@ -176,7 +180,6 @@ def get_last_conv_layer(model):
     for layer in reversed(model.layers):
 
         if isinstance(layer, tf.keras.layers.Conv2D):
-
             return layer.name
 
     return None
@@ -186,20 +189,21 @@ def get_last_conv_layer(model):
 # GRAD CAM
 # -----------------------------------------------------
 
-# -----------------------------------------------------
-# GRAD CAM FUNCTION (VGG16 FIX)
-# -----------------------------------------------------
+def make_gradcam_heatmap(img_array, model):
 
-def make_gradcam_heatmap(img_array, model, last_conv_layer_name="block5_conv3"):
+    last_conv_layer = get_last_conv_layer(model)
 
     grad_model = tf.keras.models.Model(
         inputs=model.inputs,
-        outputs=[model.get_layer(last_conv_layer_name).output, model.output]
+        outputs=[model.get_layer(last_conv_layer).output, model.output]
     )
 
     with tf.GradientTape() as tape:
 
         conv_outputs, predictions = grad_model(img_array)
+
+        if isinstance(predictions, list):
+            predictions = predictions[0]
 
         pred_index = tf.argmax(predictions[0])
 
@@ -215,9 +219,7 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name="block5_conv3"):
 
     heatmap = tf.squeeze(heatmap)
 
-    heatmap = tf.maximum(heatmap,0)
-
-    heatmap /= tf.reduce_max(heatmap)
+    heatmap = tf.maximum(heatmap,0) / tf.reduce_max(heatmap)
 
     return heatmap.numpy()
 
@@ -230,7 +232,7 @@ st.sidebar.header("Upload Rice Leaf Image")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload Image",
-    type=["jpg", "png", "jpeg"]
+    type=["jpg","png","jpeg"]
 )
 
 # -----------------------------------------------------
@@ -245,48 +247,36 @@ if uploaded_file:
 
     label, confidence, preds = predict(img)
 
-    col1, col2, col3 = st.columns(3)
+    col1,col2,col3 = st.columns(3)
 
     with col1:
-
         st.subheader("Uploaded Image")
-
         st.image(image)
 
     with col2:
-
         st.subheader("Prediction")
-
         st.success(label)
-
         st.metric("Confidence", f"{confidence*100:.2f}%")
-
         st.metric("Model Accuracy", f"{TRAINED_MODEL_ACCURACY*100:.2f}%")
 
     with col3:
-
         st.subheader("Disease Information")
-
         st.write(disease_info[label]["description"])
 
         st.write("### Solution")
 
         for s in disease_info[label]["solution"]:
-
             st.write("•", s)
 
     # -----------------------------------------------------
-    # PREDICTION CHART
+    # PROBABILITY CHART
     # -----------------------------------------------------
 
     st.subheader("Prediction Probability")
 
     df = pd.DataFrame({
-
         "Disease": classes,
-
         "Probability": preds[0]
-
     })
 
     st.bar_chart(df.set_index("Disease"))
@@ -297,37 +287,38 @@ if uploaded_file:
 
     st.subheader("Explainable AI (Grad-CAM Visualization)")
 
-try:
+    try:
 
-    heatmap = make_gradcam_heatmap(img, model)
+        heatmap = make_gradcam_heatmap(img, model)
 
-    heatmap = cv2.resize(heatmap,(224,224))
+        heatmap = cv2.resize(heatmap,(224,224))
 
-    heatmap = np.uint8(255 * heatmap)
+        heatmap = np.uint8(255 * heatmap)
 
-    heatmap_color = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+        heatmap_color = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
-    original = cv2.cvtColor(
-        np.array(image.resize((224,224))),
-        cv2.COLOR_RGB2BGR
-    )
+        original = cv2.cvtColor(
+            np.array(image.resize((224,224))),
+            cv2.COLOR_RGB2BGR
+        )
 
-    overlay = cv2.addWeighted(original,0.6,heatmap_color,0.4,0)
+        overlay = cv2.addWeighted(original,0.6,heatmap_color,0.4,0)
 
-    col1,col2 = st.columns(2)
+        col1,col2 = st.columns(2)
 
-    with col1:
-        st.subheader("Grad-CAM Heatmap")
-        st.image(heatmap_color,channels="BGR")
+        with col1:
+            st.subheader("GradCAM Heatmap")
+            st.image(heatmap_color,channels="BGR")
 
-    with col2:
-        st.subheader("Grad-CAM Overlay Result")
-        st.image(overlay,channels="BGR")
+        with col2:
+            st.subheader("GradCAM Overlay")
+            st.image(overlay,channels="BGR")
 
-except Exception as e:
+    except Exception as e:
 
-    st.error("GradCAM visualization failed")
-    st.write(e)
+        st.error("GradCAM visualization failed")
+        st.write(e)
+
 # -----------------------------------------------------
 # FOOTER
 # -----------------------------------------------------
