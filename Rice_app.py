@@ -186,9 +186,8 @@ def get_last_conv_layer(model):
 # GRAD CAM
 # -----------------------------------------------------
 
-def make_gradcam_heatmap(img_array):
 
-    last_conv_layer_name = get_last_conv_layer(model)
+def make_gradcam_heatmap(img_array, model, last_conv_layer_name):
 
     grad_model = tf.keras.models.Model(
         [model.inputs],
@@ -205,7 +204,7 @@ def make_gradcam_heatmap(img_array):
 
     grads = tape.gradient(class_channel, conv_outputs)
 
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    pooled_grads = tf.reduce_mean(grads, axis=(0,1,2))
 
     conv_outputs = conv_outputs[0]
 
@@ -213,14 +212,9 @@ def make_gradcam_heatmap(img_array):
 
     heatmap = tf.squeeze(heatmap)
 
-    heatmap = tf.maximum(heatmap, 0)
+    heatmap = tf.maximum(heatmap,0)
 
-    max_val = tf.reduce_max(heatmap)
-
-    if max_val == 0:
-        max_val = 1e-10
-
-    heatmap /= max_val
+    heatmap /= tf.reduce_max(heatmap)
 
     return heatmap.numpy()
 
@@ -298,35 +292,46 @@ if uploaded_file:
     # GRAD CAM
     # -----------------------------------------------------
 
-    st.subheader("Explainable AI (Grad-CAM)")
+    st.subheader("Explainable AI (Grad-CAM Visualization)")
 
-    try:
+try:
 
-        heatmap = make_gradcam_heatmap(img)
+    # 🔹 Change this layer if needed
+    LAST_CONV_LAYER = "conv5_block3_out"
 
-        heatmap = cv2.resize(heatmap, (224, 224))
+    heatmap = make_gradcam_heatmap(
+        img,
+        model,
+        LAST_CONV_LAYER
+    )
 
-        heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.resize(heatmap,(224,224))
 
-        heatmap_color = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = np.uint8(255 * heatmap)
 
-        original = cv2.cvtColor(
-            np.array(image.resize((224, 224))),
-            cv2.COLOR_RGB2BGR
-        )
+    heatmap_color = cv2.applyColorMap(heatmap,cv2.COLORMAP_JET)
 
-        overlay = cv2.addWeighted(original, 0.6, heatmap_color, 0.4, 0)
+    original = cv2.cvtColor(
+        np.array(image.resize((224,224))),
+        cv2.COLOR_RGB2BGR
+    )
 
-        col1, col2 = st.columns(2)
+    overlay = cv2.addWeighted(original,0.6,heatmap_color,0.4,0)
 
-        with col1:
-            st.image(heatmap_color, channels="BGR", caption="Grad-CAM Heatmap")
+    col1,col2 = st.columns(2)
 
-        with col2:
-            st.image(overlay, channels="BGR", caption="Grad-CAM Overlay")
+    with col1:
+        st.subheader("GradCAM Heatmap")
+        st.image(heatmap_color,channels="BGR")
 
-    except:
-        st.warning("Grad-CAM visualization failed.")
+    with col2:
+        st.subheader("GradCAM Overlay")
+        st.image(overlay,channels="BGR")
+
+except Exception as e:
+
+    st.error("GradCAM failed. Check layer name.")
+    st.write("Model Layers:", [layer.name for layer in model.layers])
 
 # -----------------------------------------------------
 # FOOTER
