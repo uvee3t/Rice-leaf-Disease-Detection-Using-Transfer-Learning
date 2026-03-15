@@ -32,11 +32,14 @@ These models were trained to detect key rice leaf conditions:
 The deployed system achieves ~96% to 99% prediction accuracy using deep learning .
  
 🧠 Techniques Used in the Framework
+
 🔹 Transfer Learning
 Leveraging pretrained deep learning models to achieve strong performance even with limited agricultural datasets.
 🔹 Attention-Guided Learning
+
 The model learns to focus on the most relevant disease regions of the leaf, improving classification reliability.
 🔹 Explainable AI (XAI)
+
 Integrated Grad-CAM heatmap visualization to highlight the regions of the leaf influencing the model’s predictions, making the AI system transparent and interpretable.
  
 🌱 Why This Framework is Important
