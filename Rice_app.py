@@ -24,9 +24,11 @@ st.markdown("""
 Deep Learning based system to detect **rice leaf diseases**.
 
 ### Models Used
-• AlexNet  
+• AlexNet & CNN
+• VGG16 (Best Model)
 • ResNet50  
-• MobileNetV2  
+• MobileNetV2 
+• EfficientNetB0
 • Ensemble CNN Model  
 
 Includes **Explainable AI using Grad-CAM**.
@@ -345,9 +347,9 @@ st.markdown("---")
 st.markdown("""
 ### Deep Learning Models Used
 
-AlexNet | ResNet50 | MobileNetV2 | Ensemble CNN
+AlexNet | VGG16 | ResNet50 | MobileNetV2 | EfficentNetB0 | Ensemble CNN
 
 Author: **Yuvraj Sharma**  
 Co-Author: **Ranadip Manna**  
-Guide: **Dr. Subhashis**
+Guide: **Dr.Subhasis Dasgupta **
 """)
